@@ -3,8 +3,6 @@
 `apresentacao.pptx` — 13 slides da apresentação do cp-02, com **notas do apresentador**
 em cada slide (o que falar e, no slide 4, o roteiro da demonstração ao vivo).
 
-Antes de apresentar, troque **SEU NOME** na capa.
-
 | # | Slide | Item do checklist |
 |---|---|---|
 | 1 | Capa | |

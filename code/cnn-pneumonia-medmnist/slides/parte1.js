@@ -8,7 +8,7 @@ function capa(pres) {
   texto(s, "Menos é mais", { x: L.margem, y: 1.5, w: 8.5, h: 1.3, fontFace: FONTE.titulo, fontSize: 60, bold: true, color: COR.branco, valign: "middle" });
   texto(s, "Enxugando a ResNet-18 do MedMNIST v2 para a escala do PneumoniaMNIST",
     { x: L.margem, y: 2.95, w: 8.2, h: 1.2, fontSize: 24, color: COR.sobreEscuro });
-  texto(s, "SEU NOME · Tópicos Avançados em IA", { x: L.margem, y: 6.3, w: 8, h: 0.4, fontSize: 14, color: COR.sobreEscuro });
+  texto(s, "Davi Pires Aquino de Carvalho · UFRPE · Tópicos Avançados em IA", { x: L.margem, y: 6.3, w: 8, h: 0.4, fontSize: 14, color: COR.sobreEscuro });
   ["raiox_1_normal", "raiox_2_pneumonia", "raiox_3_normal"].forEach((nome, i) =>
     s.addImage({ path: `${__dirname}/img/${nome}.png`, x: 10.4, y: 0.6 + i * 2.25, w: 2.0, h: 2.0 }));
   s.addNotes("Apresentar o trabalho: pegamos uma CNN publicada em 2023, reproduzimos o resultado dela e mostramos que uma versão 36 vezes menor da mesma rede tem o mesmo desempenho. As imagens à direita são radiografias reais do dataset.");
