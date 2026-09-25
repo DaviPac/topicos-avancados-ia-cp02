@@ -1,0 +1,412 @@
+% ============================================================
+% Relatório técnico -- cp-02 Arquiteturas (Tópicos Avançados em IA)
+%
+% COMO USAR NO OVERLEAF (template Springer LNCS):
+%   1. Abra o projeto que veio do template LNCS.
+%   2. Substitua TODO o conteúdo do samplepaper.tex por este arquivo.
+%      (O llncs.cls e o splncs04.bst do template continuam lá; não mexa.)
+%   3. Suba as 5 imagens (aba de arquivos, "Upload"), só os arquivos,
+%      sem as pastas:
+%        dados/amostras.png
+%        comparacao/curvas_treino.png
+%        comparacao/matriz_confusao.png
+%        comparacao/curva_roc.png
+%        comparacao/discordancias.png
+%   4. Troque SEU NOME e SUA INSTITUIÇÃO abaixo e compile.
+%
+% Todo número deste texto sai de um arquivo versionado no repositório;
+% a Tabela "Rastreabilidade" (seção 4) diz qual.
+% ============================================================
+\documentclass[runningheads]{llncs}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\renewcommand\UrlFont{\color{blue}\rmfamily}
+
+\begin{document}
+
+\title{Menos é mais: enxugando a ResNet-18 do MedMNIST v2 para a
+escala do PneumoniaMNIST}
+\titlerunning{Enxugando a ResNet-18 do MedMNIST v2}
+
+\author{SEU NOME}
+\authorrunning{SEU NOME}
+\institute{SUA INSTITUIÇÃO -- Tópicos Avançados em IA}
+
+\maketitle
+
+\begin{abstract}
+Reproduzimos o \textit{baseline} ResNet-18 do benchmark MedMNIST v2
+(2023) no PneumoniaMNIST, a partir do código oficial dos autores, e
+propomos uma modificação de arquitetura que remove o último estágio
+residual, reduz os blocos por estágio de dois para um e divide a
+largura por dois. A rede cai de 11,2 milhões para 307 mil parâmetros.
+Treinadas com a mesma receita, a rede original obteve AUC 0,949 e
+acurácia 0,872 no teste (publicado: 0,944 e 0,854), e a rede
+modificada obteve AUC 0,964 e acurácia 0,875, treinando 6,8 vezes mais
+rápido. As curvas de treino mostram que a rede original memoriza o
+conjunto de treino e tem a perda de validação crescendo 78\% após o
+seu mínimo, contra 15\% na rede modificada.
+
+\keywords{CNN \and ResNet \and MedMNIST \and Pneumonia \and Arquitetura}
+\end{abstract}
+
+\section{Introdução}
+
+Redes convolucionais projetadas para bases grandes, como o ImageNet, são
+frequentemente reaproveitadas sem ajuste em bases muito menores. A
+ResNet-18~\cite{he2016} tem cerca de 11 milhões de parâmetros; o
+PneumoniaMNIST~\cite{medmnistv2}, uma das bases do benchmark MedMNIST v2,
+tem 4.708 imagens de treino de $28\times28$ pixels e apenas duas classes.
+Nessa desproporção, é razoável suspeitar que boa parte da capacidade da
+rede não contribui para generalizar e só serve para memorizar o treino.
+
+O objetivo desta prática, dentro da disciplina, é demonstrar como uma
+modificação de arquitetura impacta uma rede neural. Para isso
+(i) selecionamos um artigo de 2023 que aplica uma CNN a uma base pública,
+(ii) reproduzimos o seu resultado com o código oficial dos autores,
+(iii) modificamos a arquitetura de forma substancial,
+(iv) retreinamos a rede modificada na mesma base, com a mesma receita, e
+(v) comparamos as duas quantitativa e qualitativamente.
+
+A hipótese testada é que a ResNet-18 do artigo está superdimensionada
+para o PneumoniaMNIST, e que uma versão com uma fração dos parâmetros
+alcança desempenho equivalente.
+
+\section{Artigo e rede base}
+
+O artigo escolhido é o MedMNIST v2~\cite{medmnistv2}, publicado na
+\textit{Scientific Data} em 2023. Ele padroniza 12 bases de imagens
+biomédicas 2D em $28\times28$ pixels e publica \textit{baselines} com
+código aberto (\texttt{github.com/MedMNIST/experiments}). A rede base é a
+ResNet-18 desse código, que é a variante para imagens pequenas adaptada do
+repositório \texttt{kuangliu/pytorch-cifar}: a primeira convolução é
+$3\times3$ com passo 1 e não há \textit{max-pooling} inicial, de modo que
+a imagem entra nos blocos residuais em resolução cheia.
+
+Para o PneumoniaMNIST, o artigo reporta AUC 0,944 e acurácia 0,854 para a
+ResNet-18 em resolução 28, e AUC 0,948 e acurácia 0,854 para a
+ResNet-50, que tem cerca de duas vezes mais parâmetros. A ResNet-50
+não melhorar a acurácia foi o primeiro indício que motivou a modificação.
+
+\section{Método}
+
+\subsection{Dados}
+
+O PneumoniaMNIST deriva de 5.856 radiografias de tórax pediátricas de
+Kermany et~al.~\cite{kermany2018}, recortadas e reduzidas para
+$1\times28\times28$ pelos autores do MedMNIST, com rótulo binário
+(normal ou pneumonia). Usamos a divisão oficial: 4.708 imagens de treino,
+524 de validação e 624 de teste. O arquivo foi conferido pelo MD5
+registrado no código dos autores antes de qualquer treino.
+
+A Fig.~\ref{fig:amostras} mostra exemplos das duas classes e a contagem
+por divisão. A base é desbalanceada: 74,2\% das imagens de treino e de
+validação são de pneumonia. O teste tem proporção diferente, 62,5\%
+(390 de 624): os autores do MedMNIST tiraram treino e validação do
+conjunto de treino da base de origem, e usaram como teste o conjunto de
+validação dela.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{amostras.png}
+    \caption{Exemplos de radiografias de treino de cada classe (esquerda) e
+    número de imagens por classe em cada divisão (direita).}
+    \label{fig:amostras}
+\end{figure}
+
+\subsection{Protocolo}
+
+Copiamos o projeto oficial dos autores (commit \texttt{70b6b3a}) e
+alteramos apenas a arquitetura. O diff toca dois arquivos: em
+\texttt{models.py}, a classe \texttt{ResNet} passou a aceitar a largura e
+o número de estágios como parâmetros; em
+\texttt{train\_\allowbreak and\_\allowbreak eval\_\allowbreak pytorch.py}, uma linha permite selecionar a nova
+rede. Verificamos que, com os valores padrão, a ResNet-18 continua
+idêntica à original: mesmos nomes e formatos de parâmetros, mesma contagem
+e mesma saída para os mesmos pesos. Otimizador, \textit{scheduler},
+pré-processamento, divisão dos dados e métricas são os dos autores, de
+modo que a arquitetura é a única variável entre as duas execuções.
+
+A receita de treino é a do artigo: Adam~\cite{kingma2015}, taxa de
+aprendizado 0,001, lote de 128, 100 épocas, com a taxa dividida por 10
+nas épocas 50 e 75. O script dos autores guarda o
+\textit{checkpoint} da época com maior AUC de validação, e é esse que
+avaliamos no teste. As duas redes foram treinadas em CPU de 4 núcleos, uma
+após a outra, para que o tempo de uma não fosse inflado pela disputa de
+processador com a outra.
+
+\subsection{A modificação}
+
+A Tabela~\ref{tab:params} mostra onde estão os parâmetros da ResNet-18
+nesta configuração. O quarto estágio concentra 75,2\% da rede e opera
+sobre mapas de $4\times4$, resolução em que resta pouca estrutura
+espacial de uma radiografia de $28\times28$.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Distribuição dos parâmetros da ResNet-18 do artigo
+    (1 canal de entrada, 2 classes).}
+    \label{tab:params}
+    \begin{tabular}{lrrc}
+        \toprule
+        Parte & Parâmetros & \% da rede & Mapa de saída \\
+        \midrule
+        conv. inicial + estágio 1 & 148.672 & 1,3 & $64\times28\times28$ \\
+        estágio 2 & 525.568 & 4,7 & $128\times14\times14$ \\
+        estágio 3 & 2.099.712 & 18,8 & $256\times7\times7$ \\
+        \textbf{estágio 4} & \textbf{8.393.728} & \textbf{75,2} & $\mathbf{512\times4\times4}$ \\
+        classificador & 1.026 & 0,0 & -- \\
+        \midrule
+        total & 11.168.706 & 100 & \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+A rede modificada, chamada aqui de \textit{enxuta}, aplica três cortes
+(Tabela~\ref{tab:arq}): remove o quarto estágio, usa um bloco residual por
+estágio em vez de dois e divide por dois o número de filtros de cada
+estágio. O bloco residual e a estrutura geral da ResNet são mantidos.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Arquitetura antes e depois da modificação.}
+    \label{tab:arq}
+    \begin{tabular}{lcc}
+        \toprule
+        & ResNet-18 (artigo) & Enxuta \\
+        \midrule
+        Estágios residuais & 4 & 3 \\
+        Blocos por estágio & 2, 2, 2, 2 & 1, 1, 1 \\
+        Filtros por estágio & 64, 128, 256, 512 & 32, 64, 128 \\
+        Resolução ao longo da rede & $28\to28\to14\to7\to4$ & $28\to28\to14\to7$ \\
+        Parâmetros & 11.168.706 & 307.042 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+A justificativa tem três partes: a proporção de cerca de 2.400
+parâmetros por imagem de treino; a própria tabela do artigo, em que
+dobrar a rede não melhorou a acurácia; e o fato de o estágio que mais pesa
+ser justamente o que enxerga a menor resolução.
+
+\subsection{Etapas, ferramentas e uso de IA}
+
+O trabalho seguiu as etapas: (1) busca e seleção do artigo, restrita a
+publicações de 2023 em diante; (2) cópia do código oficial e verificação
+de que a rede base não foi alterada; (3) análise da distribuição de
+parâmetros e escolha da modificação; (4) treino das duas redes no
+PneumoniaMNIST; (5) comparação e redação deste relatório. As bibliotecas
+são as do código dos autores (PyTorch, \texttt{medmnist}) mais
+\texttt{matplotlib}, \texttt{scikit-learn} e \texttt{tensorboard} para as
+figuras.
+
+Todo o código, a execução dos experimentos e o rascunho deste relatório
+foram produzidos pelo \textbf{Claude Code} (Anthropic), sob a direção do
+autor, conforme a orientação da disciplina de conduzir o trabalho
+comandando a IA. O autor definiu as restrições (artigo de 2023 em diante,
+base de tema próximo), escolheu a base e a modificação entre as opções
+propostas pela IA e revisou os resultados. Para evitar alucinações, cada
+número do texto foi conferido contra o arquivo que o produziu
+(Tabela~\ref{tab:rastro}), e as referências foram conferidas nas fontes
+dos próprios autores.
+
+\section{Resultados}
+
+\subsection{Reprodução da rede base}
+
+A ResNet-18 obteve AUC 0,949 e acurácia 0,872 no teste, contra 0,944 e
+0,854 publicados. A diferença é compatível com a variação entre execuções:
+o script dos autores não fixa semente aleatória. Consideramos a reprodução
+válida e usamos essa execução como referência do ``antes''.
+
+\subsection{Comparação quantitativa}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Resultados no conjunto de teste (624 imagens). Sensibilidade é
+    a fração de casos de pneumonia detectados; especificidade, a fração de
+    casos normais reconhecidos como normais.}
+    \label{tab:resultados}
+    \begin{tabular}{lccc}
+        \toprule
+        & ResNet-18 (artigo) & Enxuta & Publicado~\cite{medmnistv2} \\
+        \midrule
+        Parâmetros & 11.168.706 & \textbf{307.042} & -- \\
+        AUC & 0,949 & \textbf{0,964} & 0,944 \\
+        Acurácia & 0,872 & \textbf{0,875} & 0,854 \\
+        Sensibilidade & 0,985 & 0,982 & -- \\
+        Especificidade & 0,684 & 0,697 & -- \\
+        Treino (100 épocas) & 119 min & \textbf{17 min} & -- \\
+        Inferência por imagem & 4,3--4,8 ms & \textbf{0,55--0,61 ms} & -- \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+A Tabela~\ref{tab:resultados} resume o resultado. Com 36 vezes menos
+parâmetros, a rede enxuta obteve AUC 0,015 maior e acurácia praticamente
+igual, treinou 6,8 vezes mais rápido e infere de 7 a 8 vezes mais rápido
+(três medições). A hipótese se confirma: a redução não custou desempenho.
+
+\subsection{Curvas de treino}
+
+A Fig.~\ref{fig:curvas} mostra a perda e a AUC de validação por época.
+As duas redes levam a perda de treino a valores entre $10^{-6}$ e
+$10^{-5}$ e chegam a 100\% de acurácia no treino, ou seja, ambas
+memorizam o conjunto de treino, o que é esperado de redes profundas com
+capacidade suficiente~\cite{zhang2017}. A diferença está na validação: a
+perda de validação da ResNet-18 atinge o mínimo na época 6 (0,070) e
+termina 78\% acima dele (0,125), enquanto a da rede enxuta termina apenas
+15\% acima do seu mínimo (de 0,076 para 0,088). É o padrão de
+sobreajuste que motivou a modificação, e ele é bem mais fraco na rede
+menor.
+
+Os \textit{checkpoints} escolhidos pela AUC de validação vieram das
+épocas 25 (ResNet-18) e 10 (enxuta), antes das reduções da taxa de
+aprendizado. Nas duas redes, as últimas 50 épocas não melhoraram a
+validação.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{curvas_treino.png}
+    \caption{Perda (escala logarítmica) e AUC de validação por época. Linhas
+    contínuas: treino; tracejadas: validação. Os círculos marcam o
+    \textit{checkpoint} usado no teste.}
+    \label{fig:curvas}
+\end{figure}
+
+\subsection{Comparação qualitativa}
+
+As matrizes de confusão (Fig.~\ref{fig:confusao}) mostram que as duas
+redes erram do mesmo lado: detectam 98\% dos casos de pneumonia, mas
+reconhecem só cerca de 70\% dos casos normais (160 e 163 de 234),
+classificando os demais como pneumonia. É o reflexo do desbalanceamento
+do treino, e a modificação não o altera.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{matriz_confusao.png}
+    \caption{Matrizes de confusão no teste. Cor: fração da linha; rótulo:
+    contagem e fração.}
+    \label{fig:confusao}
+\end{figure}
+
+As curvas ROC (Fig.~\ref{fig:roc}) ficam próximas, com a da rede enxuta
+acima na região de poucos falsos positivos, que é onde a diferença de AUC
+se concentra. Imagem a imagem, as duas redes erram juntas em 60 radiografias
+e discordam em apenas 38: a enxuta acerta 20 delas e a ResNet-18, 18
+(Fig.~\ref{fig:discordancias}). A diferença de acurácia entre as duas é,
+portanto, de duas imagens.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.55\textwidth]{curva_roc.png}
+    \caption{Curvas ROC das duas redes no teste.}
+    \label{fig:roc}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{discordancias.png}
+    \caption{Exemplos de radiografias em que as redes discordam, com o
+    rótulo verdadeiro e a previsão e confiança de cada uma.}
+    \label{fig:discordancias}
+\end{figure}
+
+\subsection{Rastreabilidade}
+
+A Tabela~\ref{tab:rastro} indica de qual arquivo do repositório sai cada
+número apresentado nesta seção, para que qualquer um deles possa ser
+conferido ou regenerado.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Origem de cada número, no repositório do trabalho
+    (pasta \texttt{code/cnn-pneumonia-medmnist/}).}
+    \label{tab:rastro}
+    \small
+    \begin{tabular}{ll}
+        \toprule
+        Número & Arquivo \\
+        \midrule
+        AUC e acurácia & \texttt{resultados/*/pneumoniamnist\_log.txt} \\
+        Matriz de confusão, discordâncias & CSVs de teste em \texttt{resultados/} \\
+        Curvas, épocas escolhidas & \texttt{resultados/*/Tensorboard\_Results/} \\
+        Tempo de treino & \texttt{resultados/execucao.log} \\
+        Tempo de inferência & \texttt{resultados/comparacao.txt} \\
+        Parâmetros por estágio & \texttt{verificacao/contar\_parametros.py} \\
+        Distribuição das classes & \texttt{dados/pneumoniamnist.npz} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Discussão e limitações}
+
+\textbf{Execução única.} Cada rede foi treinada uma vez, sem semente fixa.
+Como a diferença de acurácia é de duas imagens, não afirmamos que a rede
+enxuta é melhor; afirmamos que ela não perdeu desempenho. Repetir cada
+treino algumas vezes e comparar médias permitiria uma conclusão mais
+forte sobre a AUC.
+
+\textbf{Mudança de proporção entre validação e teste.} A validação tem
+74,2\% de pneumonia e o teste, 62,5\%. Como as redes tendem a responder
+``pneumonia'' na dúvida, erram mais onde há mais casos normais, o que é
+compatível com a queda de acurácia de 96--97\% na validação para
+cerca de 87\% no teste nas duas redes.
+
+\textbf{Especificidade baixa.} As duas redes reconhecem só cerca de 70\%
+dos casos normais. Isso decorre dos dados, não da arquitetura, e
+exigiria outras intervenções, como ponderar as classes na função de perda.
+
+\textbf{Escala das imagens.} As radiografias originais chegam a
+$2.916\times2.713$ pixels; em $28\times28$, nada aqui indica desempenho
+clínico. O objeto de estudo é a arquitetura, não o diagnóstico.
+
+\textbf{Espaço para reduzir mais.} A rede enxuta também chega a 100\% de
+acurácia no treino, o que sugere que ela ainda tem capacidade sobrando.
+
+\section{Conclusão}
+
+Reproduzimos o \textit{baseline} ResNet-18 do MedMNIST v2 no
+PneumoniaMNIST, com resultado próximo ao publicado, e mostramos que a rede
+está superdimensionada para essa base: o seu maior estágio, com 75\% dos
+parâmetros, pode ser removido junto com metade dos blocos e metade dos
+filtros. A rede resultante tem 36 vezes menos parâmetros, treina 6,8 vezes
+mais rápido, sofre menos sobreajuste e mantém o desempenho no teste
+(AUC 0,964 contra 0,949; acurácia 0,875 contra 0,872). Para esta base, o
+tamanho da rede do artigo não se traduz em ganho de generalização.
+
+\begin{thebibliography}{6}
+
+\bibitem{he2016}
+He, K., Zhang, X., Ren, S., Sun, J.: Deep residual learning for image
+recognition. In: Proceedings of the IEEE Conference on Computer Vision
+and Pattern Recognition (CVPR), pp. 770--778 (2016)
+
+\bibitem{kermany2018}
+Kermany, D.S., Goldbaum, M., et al.: Identifying medical diagnoses and
+treatable diseases by image-based deep learning. Cell \textbf{172}(5),
+1122--1131.e9 (2018)
+
+\bibitem{kingma2015}
+Kingma, D.P., Ba, J.: Adam: A method for stochastic optimization. In:
+International Conference on Learning Representations (ICLR) (2015)
+
+\bibitem{medmnistv2}
+Yang, J., Shi, R., Wei, D., Liu, Z., Zhao, L., Ke, B., Pfister, H.,
+Ni, B.: MedMNIST v2 -- A large-scale lightweight benchmark for 2D and 3D
+biomedical image classification. Scientific Data \textbf{10}(1), 41
+(2023)
+
+\bibitem{zhang2017}
+Zhang, C., Bengio, S., Hardt, M., Recht, B., Vinyals, O.: Understanding
+deep learning requires rethinking generalization. In: International
+Conference on Learning Representations (ICLR) (2017)
+
+\end{thebibliography}
+
+\end{document}

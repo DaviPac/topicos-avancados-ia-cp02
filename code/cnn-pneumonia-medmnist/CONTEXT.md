@@ -12,7 +12,7 @@ Leia o [`LEIAME-TRABALHO.md`](LEIAME-TRABALHO.md) para os comandos e os resultad
 |--------|----------|
 | **Dos autores** (github.com/MedMNIST/experiments, commit `70b6b3a`, Apache-2.0) | `README.md`, `LICENSE`, `MedMNIST2D/`, `MedMNIST3D/`, `.gitignore` |
 | **Alterado por este trabalho** | `MedMNIST2D/models.py`, `MedMNIST2D/train_and_eval_pytorch.py` |
-| **Novo, criado por este trabalho** | `LEIAME-TRABALHO.md`, `CONTEXT.md`, `requirements.txt`, `comparar.py`, `graficos_comparacao.py`, `curvas_treino.py`, `visualizar_dados.py`, `verificacao/`, `dados/`, `resultados/` |
+| **Novo, criado por este trabalho** | `LEIAME-TRABALHO.md`, `CONTEXT.md`, `requirements.txt`, `comparar.py`, `graficos_comparacao.py`, `curvas_treino.py`, `visualizar_dados.py`, `relatorio.md`, `relatorio_overleaf.tex`, `verificacao/`, `dados/`, `resultados/` |
 
 Todo trecho alterado no código dos autores está marcado com o comentário
 `MODIFICACAO (trabalho)` — é só buscar por essa string para ver o diff inteiro.
@@ -27,6 +27,9 @@ Todo trecho alterado no código dos autores está marcado com o comentário
   Otimizador, scheduler, transformações, splits e métricas são os dos autores.
 - `MedMNIST3D/` — parte 3D do projeto original. Não é usada aqui; ficou porque a
   orientação foi copiar o projeto inteiro.
+- `relatorio_overleaf.tex` — relatório técnico completo (classe LNCS). No Overleaf,
+  substitui o `samplepaper.tex` inteiro; as instruções estão no cabeçalho do arquivo.
+  `relatorio.md` é a mesma coisa em Markdown, para ler no GitHub.
 - `visualizar_dados.py` — gera `dados/amostras.png`: raios-X de exemplo por classe e
   quantas imagens de cada classe há em cada split.
 - `curvas_treino.py` — gera `comparacao/curvas_treino.png` a partir dos logs do

@@ -47,7 +47,7 @@ Uma ResNet-18 enxugada para a escala do problema (`ResNet18Slim`, em
    4.708 imagens de treino de 28×28 numa tarefa de duas classes — cerca de 2.400
    parâmetros por exemplo de treino.
 2. **O próprio artigo mostra que mais capacidade não ajuda aqui.** Na tabela acima, a
-   ResNet-50 (28), com ~4× mais parâmetros, empata com a ResNet-18 (28) em acurácia
+   ResNet-50 (28), com 2,1× mais parâmetros (23.503.298), empata com a ResNet-18 (28) em acurácia
    (0,854) e fica a 0,004 de AUC. Se dobrar a rede não melhora, a hipótese de que dá
    para cortar é razoável — e testável.
 3. **O 4º estágio é o pior negócio da rede.** Ele opera sobre mapas de 4×4 pixels,
@@ -177,7 +177,7 @@ artigo, em CPU de 4 núcleos.
 | Parâmetros | 11.168.706 | **307.042** (36× menos) | — |
 | AUC (teste) | 0,949 | **0,964** | 0,944 |
 | ACC (teste) | 0,872 | **0,875** | 0,854 |
-| Treino completo (100 épocas) | 119 min | **17 min** (7× mais rápido) | — |
+| Treino completo (100 épocas) | 119 min | **17 min** (6,8× mais rápido) | — |
 | Inferência por imagem² | 4,3–4,8 ms | **0,55–0,61 ms** (7–8× mais rápido) | — |
 
 ² Três medições em CPU, registradas em `resultados/comparacao.txt`. O tempo absoluto
