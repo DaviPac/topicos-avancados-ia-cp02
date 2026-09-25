@@ -84,8 +84,9 @@ com o comentário `MODIFICACAO (trabalho)`:
   Nenhuma outra linha do pipeline foi tocada.
 
 Arquivos **novos** (não alteram nada dos autores): este `LEIAME-TRABALHO.md`,
-`CONTEXT.md`, `requirements.txt`, `comparar.py`, `graficos_comparacao.py` e a pasta
-`verificacao/`.
+`CONTEXT.md`, `requirements.txt`, `comparar.py`, `graficos_comparacao.py`,
+`curvas_treino.py`, `visualizar_dados.py` e as pastas `verificacao/`, `dados/` e
+`resultados/` (checkpoints e logs das duas execuções — ver `resultados/LEIAME.md`).
 
 ## Como rodar
 
@@ -177,7 +178,10 @@ artigo, em CPU de 4 núcleos.
 | AUC (teste) | 0,949 | **0,964** | 0,944 |
 | ACC (teste) | 0,872 | **0,875** | 0,854 |
 | Treino completo (100 épocas) | 119 min | **17 min** (7× mais rápido) | — |
-| Inferência por imagem | 3,47 ms | **0,36 ms** (9,6× mais rápido) | — |
+| Inferência por imagem² | 4,3–4,8 ms | **0,55–0,61 ms** (7–8× mais rápido) | — |
+
+² Três medições em CPU, registradas em `resultados/comparacao.txt`. O tempo absoluto
+varia com a carga da máquina; a razão entre as duas redes é o que se mantém.
 
 **A reprodução da base confere:** 0,949 / 0,872 contra os 0,944 / 0,854 publicados. A
 pequena diferença é esperada — o script dos autores não fixa semente aleatória, então
