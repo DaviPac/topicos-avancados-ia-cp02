@@ -23,20 +23,25 @@ def cor_do_modelo(i):
     return (ANTES, DEPOIS)[i % 2]
 
 
-def _figura(*args, **kwargs):
+def estilizar(ax):
+    """Fundo, bordas e marcacoes discretas: o dado aparece, a moldura some."""
+    ax.set_facecolor(SUPERFICIE)
+    for lado in ("top", "right"):
+        ax.spines[lado].set_visible(False)
+    for lado in ("left", "bottom"):
+        ax.spines[lado].set_color(GRADE)
+    ax.tick_params(colors=TINTA_FRACA, labelsize=9)
+
+
+def figura(*args, **kwargs):
     fig, eixos = plt.subplots(*args, **kwargs)
     fig.patch.set_facecolor(SUPERFICIE)
     for ax in np.atleast_1d(eixos).ravel():
-        ax.set_facecolor(SUPERFICIE)
-        for lado in ("top", "right"):
-            ax.spines[lado].set_visible(False)
-        for lado in ("left", "bottom"):
-            ax.spines[lado].set_color(GRADE)
-        ax.tick_params(colors=TINTA_FRACA, labelsize=9)
+        estilizar(ax)
     return fig, eixos
 
 
-def _salvar(fig, caminho, ajustar=True):
+def salvar(fig, caminho, ajustar=True):
     if ajustar:
         fig.tight_layout()
     fig.savefig(caminho, dpi=160, facecolor=SUPERFICIE)
@@ -46,7 +51,7 @@ def _salvar(fig, caminho, ajustar=True):
 
 def matriz_confusao(y_true, predicoes, nomes_classes, caminho):
     """Uma matriz por modelo, lado a lado. Cor = proporcao da linha, rotulo = contagem."""
-    fig, eixos = _figura(1, len(predicoes), figsize=(5.2 * len(predicoes), 4.8))
+    fig, eixos = figura(1, len(predicoes), figsize=(5.2 * len(predicoes), 4.8))
     for ax, (i, (rotulo, pred)) in zip(np.atleast_1d(eixos), enumerate(predicoes.items())):
         matriz = confusion_matrix(y_true, pred, labels=range(len(nomes_classes)))
         proporcao = matriz / np.maximum(matriz.sum(axis=1, keepdims=True), 1)
@@ -71,12 +76,12 @@ def matriz_confusao(y_true, predicoes, nomes_classes, caminho):
         ax.set_yticks(np.arange(-0.5, len(nomes_classes)), minor=True)
         ax.grid(which="minor", color=SUPERFICIE, linewidth=2)
         ax.tick_params(which="minor", length=0)
-    _salvar(fig, caminho)
+    salvar(fig, caminho)
 
 
 def curva_roc(y_true, escores, caminho):
     """Curvas ROC sobrepostas. So faz sentido em tarefa binaria."""
-    fig, ax = _figura(figsize=(5.6, 5.2))
+    fig, ax = figura(figsize=(5.6, 5.2))
     ax.plot([0, 1], [0, 1], color=GRADE, linewidth=1.5, linestyle="--", zorder=1)
     for i, (rotulo, escore) in enumerate(escores.items()):
         fpr, tpr, _ = roc_curve(y_true, escore)
@@ -89,7 +94,7 @@ def curva_roc(y_true, escores, caminho):
     legenda = ax.legend(frameon=False, loc="lower right", fontsize=10)
     for texto in legenda.get_texts():
         texto.set_color(TINTA)
-    _salvar(fig, caminho)
+    salvar(fig, caminho)
 
 
 def grade_discordancias(imagens, y_true, probabilidades, nomes_classes, rotulos, caminho, n=8):
@@ -105,7 +110,7 @@ def grade_discordancias(imagens, y_true, probabilidades, nomes_classes, rotulos,
     linhas = int(np.ceil(len(escolhidos) / colunas))
     # constrained_layout porque imshow trava o aspecto dos eixos, e o tight_layout
     # nesse caso deixa a legenda de uma linha invadir a imagem da linha de cima
-    fig, eixos = _figura(linhas, colunas, figsize=(3.1 * colunas, 3.8 * linhas),
+    fig, eixos = figura(linhas, colunas, figsize=(3.1 * colunas, 3.8 * linhas),
                          layout="constrained")
     for ax in np.atleast_1d(eixos).ravel():
         ax.axis("off")
@@ -124,4 +129,4 @@ def grade_discordancias(imagens, y_true, probabilidades, nomes_classes, rotulos,
 
     fig.suptitle(f"Onde as duas redes discordam ({len(discordam)} casos no teste)",
                  color=TINTA, fontsize=11)
-    _salvar(fig, caminho, ajustar=False)
+    salvar(fig, caminho, ajustar=False)

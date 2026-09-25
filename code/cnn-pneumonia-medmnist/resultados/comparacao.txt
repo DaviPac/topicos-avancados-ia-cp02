@@ -1,0 +1,12 @@
+### execucao 1  2026-09-25T19:27:18+00:00
+                                   parametros      AUC      ACC   ms/imagem
+antes (artigo) [resnet18]          11,168,706    0.949    0.872        4.81
+depois (modificada) [resnet18sli      307,042    0.964    0.875        0.61
+### execucao 2  2026-09-25T19:27:29+00:00
+                                   parametros      AUC      ACC   ms/imagem
+antes (artigo) [resnet18]          11,168,706    0.949    0.872        4.30
+depois (modificada) [resnet18sli      307,042    0.964    0.875        0.59
+### execucao 3  2026-09-25T19:27:41+00:00
+                                   parametros      AUC      ACC   ms/imagem
+antes (artigo) [resnet18]          11,168,706    0.949    0.872        4.27
+depois (modificada) [resnet18sli      307,042    0.964    0.875        0.55

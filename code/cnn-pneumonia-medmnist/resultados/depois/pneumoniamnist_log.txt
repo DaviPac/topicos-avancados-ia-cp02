@@ -1,0 +1,4 @@
+pneumoniamnist
+train  auc: 1.00000  acc: 0.99788
+val  auc: 0.99634  acc: 0.95992
+test  auc: 0.96377  acc: 0.87500
