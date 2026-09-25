@@ -1,5 +1,7 @@
 # Menos é mais: enxugando a ResNet-18 do MedMNIST v2 para a escala do PneumoniaMNIST
 
+Davi Pires Aquino de Carvalho — Universidade Federal Rural de Pernambuco (UFRPE)
+
 Relatório técnico — cp-02 Arquiteturas, Tópicos Avançados em IA.
 Versão Markdown do [`relatorio_overleaf.tex`](relatorio_overleaf.tex); o conteúdo é o mesmo.
 
